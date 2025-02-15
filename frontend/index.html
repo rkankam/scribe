@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voice Recognition App</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0;
+      }
+      #controls {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      button {
+        margin: 10px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      #loading {
+        display: none;
+        margin-top: 20px;
+      }
+      #transcription {
+        margin-top: 20px;
+        width: 80%;
+        height: 200px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        overflow-y: auto;
+        background-color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="controls">
+      <button id="startBtn">Start Recording</button>
+      <button id="stopBtn" disabled>Stop Recording</button>
+      <div id="loading">Loading...</div>
+    </div>
+    <textarea id="transcription" readonly></textarea>
+    <button id="copyBtn">Copy</button>
+
+    <script>
+      let mediaRecorder;
+      let audioChunks = [];
+
+      document
+        .getElementById("startBtn")
+        .addEventListener("click", async () => {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          });
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.start();
+
+          document.getElementById("startBtn").disabled = true;
+          document.getElementById("stopBtn").disabled = false;
+
+          mediaRecorder.addEventListener("dataavailable", (event) => {
+            audioChunks.push(event.data);
+          });
+
+          mediaRecorder.addEventListener("stop", () => {
+            const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+            const formData = new FormData();
+            formData.append("file", audioBlob, "recording.wav");
+
+            document.getElementById("loading").style.display = "block";
+
+            fetch("http://localhost:5000/transcribe", {
+              method: "POST",
+              body: formData,
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                document.getElementById("transcription").value =
+                  data.transcription;
+                document.getElementById("loading").style.display = "none";
+              })
+              .catch((error) => {
+                console.error("Error:", error);
+                document.getElementById("loading").style.display = "none";
+              });
+
+            audioChunks = [];
+          });
+        });
+
+      document.getElementById("stopBtn").addEventListener("click", () => {
+        mediaRecorder.stop();
+        document.getElementById("startBtn").disabled = false;
+        document.getElementById("stopBtn").disabled = true;
+      });
+
+      document.getElementById("copyBtn").addEventListener("click", () => {
+        const transcription = document.getElementById("transcription");
+        transcription.select();
+        document.execCommand("copy");
+      });
+    </script>
+  </body>
+</html>
