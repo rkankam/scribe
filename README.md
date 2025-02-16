@@ -21,7 +21,7 @@ This repository contains the code for a voice recognition app built with Flask (
 1. **Clone the repository:**
 
    ```sh
-   git clone https://github.com/your-username/voice_recognition_app.git
+   git clone https://github.com/rkankam/scribe
    cd voice_recognition_app/backend
    ```
 
